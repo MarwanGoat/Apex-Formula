@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Apex Formula: 80kmh Cap Edition</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #121212;
+            font-family: 'Segoe UI', sans-serif;
+            color: white;
+            user-select: none;
+        }
+
+        canvas {
+            display: block;
+       }
+
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .hud-top {
+            display: flex;
+            justify-content: space-between;
+            padding: 25px;
+            text-shadow: 0 2px 5px rgba(0, 0, 0, 0.9);
+        }
+
+        .hud-bottom {
+            padding: 25px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+        }
+
+        .stat-box {
+            background: rgba(20, 20, 20, 0.9);
+            border-left: 4px solid #e10600;
+            padding: 12px 25px;
+            border-radius: 4px;
+            margin-bottom: 12px;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: #bbb;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            letter-spacing: -1px;
+        }
+
+        /* MENUS */
+        #menu-screen,
+        #game-over-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #050505 0%, #1a1a1a 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            pointer-events: auto;
+        }
+
+        #game-over-screen {
+            background: rgba(0, 0, 0, 0.95);
+            display: none;
+        }
+
+        h1 {
+            font-size: 60px;
+            margin: 0;
+            font-style: italic;
+            color: #e10600;
+            text-transform: uppercase;
+            letter-spacing: -3px;
+            text-shadow: 0 5px 15px rgba(225, 6, 0, 0.5);
+        }
+
+        h3 {
+            color: #888;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 15px 0 5px 0;
+            font-size: 12px;
+        }
+
+        .selector-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .opt-btn {
+            padding: 10px 20px;
+            background: #333;
+            border: 2px solid #555;
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-weight: bold;
+            text-transform: uppercase;
+            min-width: 80px;
+            border-radius: 4px;
+        }
+
+        .opt-btn:hover {
+            background: #444;
+            border-color: #fff;
+        }
+
+        .opt-btn.selected {
+            background: #e10600;
+            border-color: #e10600;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px #e10600;
+        }
+
+        /* SKIN BUTTONS specific styles */
+        #skin-doge.selected {
+            background: #e4b86a;
+            border-color: #fff;
+            color: black;
+            box-shadow: 0 0 15px #e4b86a;
+        }
+
+        #skin-pepe.selected {
+            background: #4c9c23;
+            border-color: #fff;
+            color: white;
+            box-shadow: 0 0 15px #4c9c23;
+        }
+
+        #skin-nyan.selected {
+            background: #ff99cc;
+            border-color: #fff;
+            color: white;
+            box-shadow: 0 0 15px #ff99cc;
+        }
+
+        button.start-btn {
+            padding: 15px 50px;
+            font-size: 20px;
+            background: #fff;
+            color: #000;
+            border: none;
+            cursor: pointer;
+            font-weight: 800;
+            text-transform: uppercase;
+            transform: skewX(-15deg);
+            transition: 0.2s;
+            margin-top: 20px;
+        }
+
+        button.start-btn:hover {
+            background: #e10600;
+            color: white;
+            transform: skewX(-15deg) scale(1.05);
+        }
+
+        /* LEADERBOARD TABLE */
+        table {
+            border-collapse: collapse;
+            width: 400px;
+            margin-top: 20px;
+            color: #fff;
+            font-family: monospace;
+            font-size: 16px;
+        }
+
+        th {
+            text-align: left;
+            color: #888;
+            border-bottom: 1px solid #444;
+            padding: 5px;
+        }
+
+        td {
+            padding: 8px 5px;
+            border-bottom: 1px solid #333;
+        }
+
+        .rank-1 {
+            color: gold;
+            font-weight: bold;
+        }
+
+        .bar-container {
+            width: 180px;
+            height: 8px;
+            background: #333;
+            margin-top: 8px;
+            transform: skewX(-20deg);
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #00ff00;
+            width: 100%;
+            transition: width 0.1s linear;
+        }
+
+        #damage-warning {
+            color: #ff3333;
+            font-weight: bold;
+            display: none;
+            animation: blink 0.5s infinite;
+        }
+
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+
+        #center-msg {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 5;
+        }
+
+        .big-text {
+            font-size: 100px;
+            font-weight: 900;
+            font-style: italic;
+            -webkit-text-stroke: 2px black;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        #controls-guide {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 15px;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            backdrop-filter: blur(5px);
+        }
+
+        .key-row {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 5px;
+        }
+
+        .key {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #555;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 18px;
+            color: #888;
+            background: #222;
+            transition: all 0.1s;
+        }
+
+        .key.wide {
+            width: 130px;
+            font-size: 14px;
+            letter-spacing: 1px;
+        }
+
+        .key.active {
+            background: white;
+            color: black;
+            border-color: white;
+            transform: translateY(2px);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div id="ui-layer">
+        <div class="hud-top">
+            <div class="stat-box">
+                <div class="stat-label">Lap</div>
+                <div class="stat-value"><span id="current-lap">1</span> / <span id="total-laps">3</span></div>
+            </div>
+            <div class="stat-box" style="border-color: gold;">
+                <div class="stat-label">Time</div>
+                <div class="stat-value" id="lap-timer">00:00.00</div>
+            </div>
+        </div>
+        <div id="center-msg">
+            <div id="msg-text" class="big-text" style="color: gold;">FINAL LAP</div>
+        </div>
+        <div class="hud-bottom">
+            <div>
+                <div class="stat-box">
+                    <div class="stat-label">Integrity <span id="damage-warning">CRITICAL</span></div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="health-bar"></div>
+                    </div>
+                </div>
+                <div class="stat-box" style="border-color: #00f0ff;">
+                    <div class="stat-label">ERS Battery</div>
+                    <div class="bar-container">
+                        <div class="bar-fill" id="kers-bar" style="background: #00f0ff;"></div>
+                    </div>
+                </div>
+            </div>
+            <div id="controls-guide">
+                <div class="key-row">
+                    <div id="key-w" class="key">W</div>
+                </div>
+                <div class="key-row">
+                    <div id="key-a" class="key">A</div>
+                    <div id="key-s" class="key">S</div>
+                    <div id="key-d" class="key">D</div>
+                </div>
+                <div class="key-row">
+                    <div id="key-space" class="key wide">NITRO BOOST</div>
+                </div>
+            </div>
+            <div class="stat-box" style="border-left: none; border-right: 4px solid white;">
+                <div class="stat-label">Speed</div>
+                <div class="stat-value"><span id="speed-display">0</span> <span style="font-size: 14px; color:#888">KPH</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="menu-screen">
+        <h1>Apex Formula</h1>
+        <h3>Choose Your Car</h3>
+        <div class="selector-row">
+            <button class="opt-btn selected" onclick="Menu.selectSkin('std')" id="skin-std">Standard</button>
+            <button class="opt-btn" onclick="Menu.selectSkin('doge')" id="skin-doge" style="border-color:#e4b86a">Doge</button>
+            <button class="opt-btn" onclick="Menu.selectSkin('pepe')" id="skin-pepe" style="border-color:#4c9c23">Pepe</button>
+            <button class="opt-btn" onclick="Menu.selectSkin('nyan')" id="skin-nyan" style="border-color:#ff99cc">Nyan</button>
+        </div>
+        <h3>Select Laps</h3>
+        <div class="selector-row">
+            <button class="opt-btn" onclick="Menu.selectLaps(1)" id="lap-1">1 Lap</button>
+            <button class="opt-btn selected" onclick="Menu.selectLaps(3)" id="lap-3">3 Laps</button>
+            <button class="opt-btn" onclick="Menu.selectLaps(5)" id="lap-5">5 Laps</button>
+        </div>
+        <h3>AI Difficulty</h3>
+        <div class="selector-row">
+            <button class="opt-btn selected" onclick="Menu.selectDiff('easy')" id="diff-easy">Easy</button>
+            <button class="opt-btn" onclick="Menu.selectDiff('med')" id="diff-med">Medium</button>
+            <button class="opt-btn" onclick="Menu.selectDiff('hard')" id="diff-hard">Hard</button>
+        </div>
+        <button class="start-btn" onclick="Game.start()">Start Race</button>
+    </div>
+    <div id="game-over-screen">
+        <h1 id="end-title" style="color: #fff;">VICTORY!</h1>
+        <h2 id="end-reason" style="color:#aaa; font-size:14px; margin-top:0;">New Record!</h2>
+        <h3>Leaderboard</h3>
+        <table id="leaderboard-table">
+            <tbody id="lb-body"></tbody>
+        </table>
+        <button class="start-btn" onclick="location.reload()" style="margin-top:30px;">Main Menu</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        /** * AUDIO ENGINE - WITH WIN SOUND */
+        const SFX = {
+            ctx: null,
+            engineOsc: null,
+            engineGain: null,
+            init() {
+                if (this.ctx) return;
+                const AC = window.AudioContext || window.webkitAudioContext;
+                this.ctx = new AC();
+                this.engineOsc = this.ctx.createOscillator();
+                this.engineOsc.type = 'sawtooth';
+                this.engineGain = this.ctx.createGain();
+                this.engineGain.gain.value = 0;
+                const filter = this.ctx.createBiquadFilter();
+                filter.type = 'lowpass';
+                filter.frequency.value = 400;
+                this.engineOsc.connect(filter);
+                filter.connect(this.engineGain);
+                this.engineGain.connect(this.ctx.destination);
+                this.engineOsc.start();
+            },
+            resume() {
+                if (this.ctx && this.ctx.state === 'suspended') this.ctx.resume();
+            },
+            engine(speed) {
+                if (!this.ctx) return;
+                this.engineOsc.frequency.setTargetAtTime(60 + (speed * 300), this.ctx.currentTime, 0.1);
+                this.engineGain.gain.setTargetAtTime(0.05 + (speed * 0.15), this.ctx.currentTime, 0.1);
+            },
+            stopEngine() {
+                if (this.engineGain) this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+            },
+            crash() {
+                if (!this.ctx) return;
+                const osc = this.ctx.createOscillator();
+                const g = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(10, this.ctx.currentTime + 0.4);
+                g.gain.setValueAtTime(0.5, this.ctx.currentTime);
+                g.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.4);
+                osc.connect(g);
+                g.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.4);
+            },
+            playWin() {
+                if (!this.ctx) return;
+                this.stopEngine();
+                const t = this.ctx.currentTime;
+                [0, 0.2, 0.4, 0.6].forEach((delay, i) => {
+                    const osc = this.ctx.createOscillator();
+                    const g = this.ctx.createGain();
+                    osc.type = 'triangle';
+                    const notes = [523.25, 659.25, 783.99, 1046.50];
+                    osc.frequency.value = notes[i];
+                    g.gain.setValueAtTime(0.3, t + delay);
+                    g.gain.exponentialRampToValueAtTime(0.01, t + delay + 0.5);
+                    osc.connect(g);
+                    g.connect(this.ctx.destination);
+                    osc.start(t + delay);
+                    osc.stop(t + delay + 0.5);
+                });
+            }
+        };
+
+        const Utils = {
+            lerp: (a, b, t) => a + (b - a) * t,
+            clamp: (num, min, max) => Math.min(Math.max(num, min), max),
+            dist: (x1, y1, x2, y2) => Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2),
+            formatTime: (ms) => {
+                let m = Math.floor(ms / 60000);
+                let s = Math.floor((ms % 60000) / 1000);
+                let c = Math.floor((ms % 1000) / 10);
+                return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}.${c.toString().padStart(2, '0')}`;
+            }
+        };
+
+        const CONFIG = {
+            MAX_SPEED: 7.41,
+            ACCEL: 0.1,
+            FRICTION: 0.98,
+            GRASS_FRICTION: 0.85,
+            TURN_SPEED: 0.045,
+            DRIFT_FACTOR: 0.98,
+            KERS_FORCE: 0.35,
+            WORLD_W: 3000,
+            WORLD_H: 3000
+        };
+
+        const Menu = {
+            laps: 3,
+            difficulty: 'easy',
+            skin: 'std',
+            selectLaps(n) {
+                this.laps = n;
+                document.querySelectorAll('#menu-screen .opt-btn').forEach(b => {
+                    if (b.id.startsWith('lap-')) b.classList.remove('selected');
+                });
+                document.getElementById(`lap-${n}`).classList.add('selected');
+            },
+            selectDiff(d) {
+                this.difficulty = d;
+                document.querySelectorAll('#menu-screen .opt-btn').forEach(b => {
+                    if (b.id.startsWith('diff-')) b.classList.remove('selected');
+                });
+                document.getElementById(`diff-${d}`).classList.add('selected');
+            },
+            selectSkin(s) {
+                this.skin = s;
+                document.querySelectorAll('#menu-screen .opt-btn').forEach(b => {
+                    if (b.id.startsWith('skin-')) b.classList.remove('selected');
+                });
+                document.getElementById(`skin-${s}`).classList.add('selected');
+            }
+        };
+
+        class Leaderboard {
+            static KEY = 'apex_formula_records';
+            static save(time) {
+                let records = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+                records.push({
+                    time: time,
+                    date: new Date().toLocaleDateString()
+                });
+                records.sort((a, b) => a.time - b.time);
+                records = records.slice(0, 5);
+                localStorage.setItem(this.KEY, JSON.stringify(records));
+                return records;
+            }
+            static render(tbody) {
+                let records = JSON.parse(localStorage.getItem(this.KEY) || '[]');
+                tbody.innerHTML = records.map((r, i) => `<tr><td class="${i === 0 ? 'rank-1' : ''}">${i + 1}.</td><td>${Utils.formatTime(r.time)}</td><td style="font-size:12px;color:#666">${r.date}</td></tr>`).join('');
+            }
+        }
+
+        class Particle {
+            constructor(x, y, type) {
+                this.x = x;
+                this.y = y;
+                this.type = type;
+                this.life = 1.0;
+                const angle = Math.random() * Math.PI * 2;
+                const speed = Math.random() * (type === 'fire' ? 5 : 2);
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+                if (type === 'fire') {
+                    this.color = 'orange';
+                    this.size = Math.random() * 8 + 4;
+                } else if (type === 'rainbow') {
+                    this.color = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                    this.size = 4;
+                } else if (type === 'smoke') {
+                    this.color = '#555';
+                    this.size = Math.random() * 10 + 5;
+                } else {
+                    this.color = 'white';
+                    this.size = 2;
+                }
+            }
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.life -= 0.03;
+                if (this.type === 'fire') {
+                    this.color = Math.random() > 0.5 ? 'orange' : 'red';
+                }
+            }
+            draw(ctx) {
+                ctx.globalAlpha = Math.max(0, this.life);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1.0;
+            }
+        }
+
+        class Track {
+            constructor() {
+                this.width = CONFIG.WORLD_W;
+                this.height = CONFIG.WORLD_H;
+                this.waypoints = [{
+                    x: 1500,
+                    y: 2500
+                }, {
+                    x: 2200,
+                    y: 2500
+                }, {
+                    x: 2600,
+                    y: 2200
+                }, {
+                    x: 2600,
+                    y: 1500
+                }, {
+                    x: 2400,
+                    y: 1000
+                }, {
+                    x: 2000,
+                    y: 600
+                }, {
+                    x: 1000,
+                    y: 600
+                }, {
+                    x: 600,
+                    y: 800
+                }, {
+                    x: 400,
+                    y: 1500
+                }, {
+                    x: 600,
+                    y: 2000
+                }, {
+                    x: 1000,
+                    y: 2300
+                }];
+                this.pattern = null;
+            }
+            createAsphalt(ctx) {
+                if (this.pattern) return this.pattern;
+                const c = document.createElement('canvas');
+                c.width = 64;
+                c.height = 64;
+                const x = c.getContext('2d');
+                x.fillStyle = '#252525';
+                x.fillRect(0, 0, 64, 64);
+                for (let i = 0; i < 100; i++) {
+                    x.fillStyle = Math.random() > .5 ? '#333' : '#111';
+                    x.fillRect(Math.random() * 64, Math.random() * 64, 2, 2);
+                }
+                return this.pattern = ctx.createPattern(c, 'repeat');
+            }
+            draw(ctx, isCollision = false) {
+                if (!isCollision) {
+                    ctx.fillStyle = '#1e3020';
+                    ctx.fillRect(0, 0, this.width, this.height);
+                    ctx.fillStyle = '#c2b280';
+                    ctx.beginPath();
+                    ctx.arc(2600, 2200, 300, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(600, 800, 300, 0, Math.PI * 2);
+                    ctx.fill();
+                } else {
+                    ctx.fillStyle = '#00f';
+                    ctx.fillRect(0, 0, this.width, this.height);
+                }
+                ctx.lineCap = 'round';
+                ctx.lineJoin = 'round';
+                if (!isCollision) {
+                    ctx.lineWidth = 260;
+                    ctx.strokeStyle = '#555';
+                    this.drawPath(ctx);
+                    ctx.lineWidth = 220;
+                    ctx.strokeStyle = '#d00';
+                    ctx.setLineDash([30, 30]);
+                    this.drawPath(ctx);
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineDashOffset = 30;
+                    this.drawPath(ctx);
+                    ctx.setLineDash([]);
+                }
+                ctx.lineWidth = 180;
+                ctx.strokeStyle = isCollision ? '#000' : '#222';
+                this.drawPath(ctx);
+                if (!isCollision) {
+                    ctx.strokeStyle = this.createAsphalt(ctx);
+                    this.drawPath(ctx);
+                    ctx.save();
+                    ctx.translate(1500, 2500);
+                    ctx.fillStyle = 'white';
+                    for (let i = 0; i < 4; i++)
+                        for (let j = 0; j < 18; j++) {
+                            ctx.fillStyle = (i + j) % 2 ? '#fff' : '#000';
+                            ctx.fillRect(0, j * 10 - 90, 20, 10);
+                        }
+                    ctx.restore();
+                }
+            }
+            drawPath(ctx) {
+                ctx.beginPath();
+                const w = this.waypoints;
+                ctx.moveTo(w[0].x, w[0].y);
+                for (let i = 1; i < w.length; i++) ctx.lineTo(w[i].x, w[i].y);
+                ctx.closePath();
+                ctx.stroke();
+            }
+        }
+
+        class Car {
+            constructor(x, y, isPlayer, color) {
+                this.x = x;
+                this.y = y;
+                this.isPlayer = isPlayer;
+                this.color = color;
+                this.angle = 0;
+                this.speed = 0;
+                this.vx = 0;
+                this.vy = 0;
+                this.health = 100;
+                this.kers = 100;
+                this.skin = isPlayer ? Menu.skin : 'std';
+                this.maxSpeed = CONFIG.MAX_SPEED;
+                if (!isPlayer) {
+                    if (Menu.difficulty === 'easy') this.maxSpeed = CONFIG.MAX_SPEED * 0.55;
+                    else if (Menu.difficulty === 'med') this.maxSpeed = CONFIG.MAX_SPEED * 0.92;
+                    else if (Menu.difficulty === 'hard') this.maxSpeed = CONFIG.MAX_SPEED * 1.05;
+                }
+                this.waypointIdx = 1;
+                this.dead = false;
+                this.laneOffset = (Math.random() - 0.5) * 10;
+                this.stuckTimer = 0;
+            }
+            update(input, track, allCars, surface, hitCtx) {
+                if (this.dead) {
+                    this.speed *= 0.9;
+                    return;
+                }
+                let drag = CONFIG.FRICTION;
+                if (this.isPlayer) {
+                    SFX.engine(Math.abs(this.speed) / CONFIG.MAX_SPEED);
+                    if (Menu.difficulty === 'easy') drag = 0.99;
+                    if (Math.abs(this.speed) > 0.5) {
+                        if (input.left) this.angle -= CONFIG.TURN_SPEED;
+                        if (input.right) this.angle += CONFIG.TURN_SPEED;
+                    }
+                    if (input.up) this.speed += CONFIG.ACCEL;
+                    if (input.down) this.speed -= CONFIG.ACCEL;
+                    if (input.kers && this.kers > 0) {
+                        this.speed += CONFIG.KERS_FORCE;
+                        this.kers--;
+                    } else if (this.kers < 100) this.kers += 0.2;
+                } else {
+                    if (Math.abs(this.speed) < 1 || this.x < 10 || this.x > CONFIG.WORLD_W - 10 || this.y < 10 || this.y > CONFIG.WORLD_H - 10) {
+                        this.stuckTimer++;
+                        if (this.stuckTimer > 60) {
+                            let t = track.waypoints[this.waypointIdx];
+                            this.x = t.x;
+                            this.y = t.y;
+                            this.speed = 2;
+                            this.stuckTimer = 0;
+                        }
+                    } else {
+                        this.stuckTimer = 0;
+                    }
+                    let target = track.waypoints[this.waypointIdx];
+                    let offset = (surface === 'grass') ? 0 : this.laneOffset;
+                    let tx = target.x + Math.cos(this.angle) * offset;
+                    let ty = target.y + Math.sin(this.angle) * offset;
+                    tx = Utils.clamp(tx, 200, CONFIG.WORLD_W - 200);
+                    ty = Utils.clamp(ty, 200, CONFIG.WORLD_H - 200);
+                    let dist = Utils.dist(this.x, this.y, tx, ty);
+                    let targetAngle = Math.atan2(ty - this.y, tx - this.x);
+                    let diff = targetAngle - this.angle;
+                    while (diff < -Math.PI) diff += Math.PI * 2;
+                    while (diff > Math.PI) diff -= Math.PI * 2;
+                    this.angle += Utils.clamp(diff, -CONFIG.TURN_SPEED, CONFIG.TURN_SPEED);
+                    let severity = Math.abs(diff);
+                    let limit = this.maxSpeed;
+                    if (severity > 0.5) limit = this.maxSpeed * 0.4;
+                    else if (severity > 0.2) limit = this.maxSpeed * 0.7;
+                    let aiAccel = (Menu.difficulty === 'easy') ? CONFIG.ACCEL * 0.6 : CONFIG.ACCEL;
+                    if (this.speed < limit) this.speed += aiAccel;
+                    else this.speed -= aiAccel;
+                    if (dist < 300) this.waypointIdx = (this.waypointIdx + 1) % track.waypoints.length;
+                }
+                if (surface === 'grass') {
+                    drag = CONFIG.GRASS_FRICTION;
+                }
+                this.speed *= drag;
+                this.speed = Utils.clamp(this.speed, -5, this.isPlayer ? CONFIG.MAX_SPEED : this.maxSpeed);
+                let nextVx = Utils.lerp(this.vx, Math.cos(this.angle) * this.speed, 1 - CONFIG.DRIFT_FACTOR);
+                let nextVy = Utils.lerp(this.vy, Math.sin(this.angle) * this.speed, 1 - CONFIG.DRIFT_FACTOR);
+                let nextX = this.x + nextVx;
+                let nextY = this.y + nextVy;
+                if (nextX < 100 || nextX > CONFIG.WORLD_W - 100 || nextY < 100 || nextY > CONFIG.WORLD_H - 100) {
+                    this.speed *= -0.3;
+                    this.vx *= -0.3;
+                    this.vy *= -0.3;
+                    nextX = Utils.clamp(nextX, 110, CONFIG.WORLD_W - 110);
+                    nextY = Utils.clamp(nextY, 110, CONFIG.WORLD_H - 110);
+                }
+                let p = hitCtx.getImageData(Math.floor(nextX), Math.floor(nextY), 1, 1).data;
+                if (p[2] > 200 && p[0] < 50) {
+                    this.speed *= -0.3;
+                    this.vx *= -0.3;
+                    this.vy *= -0.3;
+                    this.x -= nextVx * 3;
+                    this.y -= nextVy * 3;
+                    if (Math.abs(this.speed) > 1.0) {
+                        let dmg = 10;
+                        if (this.isPlayer && Menu.difficulty === 'easy') dmg = 5;
+                        this.health -= dmg;
+                        Game.spawnPart(this.x, this.y, 'spark', 10);
+                        Game.shake = 5;
+                        if (this.isPlayer) SFX.crash();
+                    }
+                } else {
+                    this.vx = nextVx;
+                    this.vy = nextVy;
+                    this.x = nextX;
+                    this.y = nextY;
+                }
+                if (this.health <= 0) this.explode();
+                if (this.skin === 'nyan' && Math.abs(this.speed) > 5) {
+                    Game.spawnPart(this.x - Math.cos(this.angle) * 20, this.y - Math.sin(this.angle) * 20, 'rainbow', 1);
+                }
+                if (this.health < 40 && Math.random() > .8) Game.spawnPart(this.x, this.y, 'smoke', 1);
+            }
+            explode() {
+                this.dead = true;
+                this.speed = 0;
+                Game.shake = 30;
+                Game.spawnPart(this.x, this.y, 'fire', 50);
+                Game.spawnPart(this.x, this.y, 'smoke', 30);
+                if (this.isPlayer) SFX.crash();
+                if (this.isPlayer) {
+                    document.getElementById('end-title').innerText = "CRITICAL FAILURE";
+                    document.getElementById('end-title').style.color = "red";
+                    document.getElementById('end-reason').innerText = "Vehicle Destroyed";
+                    setTimeout(() => {
+                        document.getElementById('game-over-screen').style.display = 'flex';
+                    }, 2000);
+                }
+            }
+            draw(ctx) {
+                if (this.dead) return;
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle + Math.PI / 2);
+                if (this.skin === 'doge') {
+                    ctx.fillStyle = '#e4b86a';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -25);
+                    ctx.lineTo(8, 10);
+                    ctx.lineTo(8, 25);
+                    ctx.lineTo(-8, 25);
+                    ctx.lineTo(-8, 10);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(-6, -10);
+                    ctx.lineTo(-12, -20);
+                    ctx.lineTo(-4, -15);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.moveTo(6, -10);
+                    ctx.lineTo(12, -20);
+                    ctx.lineTo(4, -15);
+                    ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-3, 0, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(3, 0, 1.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(0, 8, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (this.skin === 'pepe') {
+                    ctx.fillStyle = '#4c9c23';
+                    ctx.beginPath();
+                    ctx.moveTo(0, -25);
+                    ctx.lineTo(8, 10);
+                    ctx.lineTo(8, 25);
+                    ctx.lineTo(-8, 25);
+                    ctx.lineTo(-8, 10);
+                    ctx.fill();
+                    ctx.strokeStyle = '#be1e2d';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-6, 8);
+                    ctx.quadraticCurveTo(0, 12, 6, 8);
+                    ctx.stroke();
+                    ctx.fillStyle = 'white';
+                    ctx.beginPath();
+                    ctx.arc(-5, -5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(5, -5, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'black';
+                    ctx.beginPath();
+                    ctx.arc(-5, -5, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(5, -5, 1, 0, Math.PI * 2);
+                    ctx.fill();
+                } else if (this.skin === 'nyan') {
+                    ctx.fillStyle = '#ff99cc';
+                    ctx.fillRect(-8, -15, 16, 25);
+                    ctx.fillStyle = '#999';
+                    ctx.beginPath();
+                    ctx.arc(0, -15, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.beginPath();
+                    ctx.arc(0, 10, 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.fillStyle = 'red';
+                    ctx.fillRect(-4, -5, 2, 2);
+                    ctx.fillStyle = 'blue';
+                    ctx.fillRect(4, 0, 2, 2);
+                    ctx.fillStyle = 'orange';
+                    ctx.fillRect(0, 5, 2, 2);
+                } else {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.moveTo(0, -25);
+                    ctx.lineTo(8, 10);
+                    ctx.lineTo(8, 25);
+                    ctx.lineTo(-8, 25);
+                    ctx.lineTo(-8, 10);
+                    ctx.fill();
+                    ctx.fillStyle = '#111';
+                    ctx.fillRect(-12, -28, 24, 6);
+                    ctx.fillRect(-12, 22, 24, 6);
+                }
+                ctx.fillStyle = '#000';
+                ctx.fillRect(-14, -18, 6, 12);
+                ctx.fillRect(8, -18, 6, 12);
+                ctx.fillRect(-14, 8, 6, 12);
+                ctx.fillRect(8, 8, 6, 12);
+                ctx.restore();
+            }
+        }
+
+        const Game = {
+            canvas: document.getElementById('gameCanvas'),
+            ctx: document.getElementById('gameCanvas').getContext('2d'),
+            hitCtx: document.createElement('canvas').getContext('2d', {
+                willReadFrequently: true
+            }),
+            state: 'MENU',
+            track: new Track(),
+            cars: [],
+            particles: [],
+            shake: 0,
+            lap: 1,
+            lapStart: 0,
+            totalLaps: 3,
+            input: {
+                up: 0,
+                down: 0,
+                left: 0,
+                right: 0,
+                kers: 0
+            },
+            init() {
+                this.resize();
+                window.onresize = () => this.resize();
+                window.onkeydown = e => this.key(e, 1);
+                window.onkeyup = e => this.key(e, 0);
+                requestAnimationFrame(() => this.loop());
+            },
+            resize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+                this.hitCtx.canvas.width = CONFIG.WORLD_W;
+                this.hitCtx.canvas.height = CONFIG.WORLD_H;
+                this.track.draw(this.hitCtx, true);
+            },
+            key(e, s) {
+                const k = e.key.toLowerCase();
+                if (k == 'w' || k == 'arrowup') this.input.up = s;
+                if (k == 's' || k == 'arrowdown') this.input.down = s;
+                if (k == 'a' || k == 'arrowleft') this.input.left = s;
+                if (k == 'd' || k == 'arrowright') this.input.right = s;
+                if (k == ' ') this.input.kers = s;
+                const map = {
+                    'w': 'key-w',
+                    'arrowup': 'key-w',
+                    's': 'key-s',
+                    'arrowdown': 'key-s',
+                    'a': 'key-a',
+                    'arrowleft': 'key-a',
+                    'd': 'key-d',
+                    'arrowright': 'key-d',
+                    ' ': 'key-space'
+                };
+                if (map[k]) {
+                    const el = document.getElementById(map[k]);
+                    if (el) {
+                        if (s) el.classList.add('active');
+                        else el.classList.remove('active');
+                    }
+                }
+            },
+            start() {
+                SFX.init();
+                SFX.resume();
+                this.totalLaps = Menu.laps;
+                this.lap = 1;
+                document.getElementById('total-laps').innerText = this.totalLaps;
+                document.getElementById('current-lap').innerText = 1;
+                document.getElementById('menu-screen').style.display = 'none';
+                document.getElementById('game-over-screen').style.display = 'none';
+                this.cars = [
+                    new Car(1500, 2500, true, '#e10600'),
+                    new Car(1400, 2550, false, '#00d2be'),
+                    new Car(1300, 2450, false, '#1e41ff'),
+                    new Car(1200, 2500, false, '#ff8700')
+                ];
+                if (Menu.difficulty === 'easy') this.cars[0].health = 200;
+                this.particles = [];
+                this.lapStart = Date.now();
+                this.state = 'RACING';
+                this.cars.forEach(c => {
+                    if (!c.isPlayer) c.waypointIdx = 1;
+                });
+            },
+            spawnPart(x, y, type, count) {
+                for (let i = 0; i < count; i++) this.particles.push(new Particle(x, y, type));
+            },
+            loop() {
+                if (this.state === 'RACING') {
+                    this.update();
+                    this.draw();
+                }
+                requestAnimationFrame(() => this.loop());
+            },
+            update() {
+                if (this.shake > 0) this.shake *= 0.9;
+                const p = this.cars[0];
+                if (p.x > 1500 && p.x < 1550 && p.y > 2400 && p.y < 2600 && p.vx > 0) {
+                    const now = Date.now();
+                    if (now - this.lapStart > 10000) {
+                        const lapTime = now - this.lapStart;
+                        this.lapStart = now;
+                        if (this.lap === this.totalLaps) {
+                            this.state = 'FINISHED';
+                            SFX.playWin();
+                            Leaderboard.save(lapTime);
+                            document.getElementById('end-title').innerText = "VICTORY";
+                            document.getElementById('end-title').style.color = "gold";
+                            document.getElementById('end-reason').innerText = "Best Lap Saved";
+                            const tbody = document.getElementById('lb-body');
+                            Leaderboard.render(tbody);
+                            document.getElementById('game-over-screen').style.display = 'flex';
+                        } else {
+                            this.lap++;
+                            document.getElementById('current-lap').innerText = this.lap;
+                            const msg = document.getElementById('msg-text');
+                            msg.innerText = this.lap === this.totalLaps ? "FINAL LAP" : "LAP " + this.lap;
+                            msg.style.opacity = 1;
+                            setTimeout(() => msg.style.opacity = 0, 2000);
+                        }
+                    }
+                }
+                document.getElementById('lap-timer').innerText = Utils.formatTime(Date.now() - this.lapStart);
+                document.getElementById('speed-display').innerText = Math.floor(Math.abs(p.speed) * 10.8);
+                let maxHealth = (Menu.difficulty === 'easy') ? 200 : 100;
+                document.getElementById('health-bar').style.width = Math.min(100, Math.max(0, (p.health / maxHealth) * 100)) + '%';
+                document.getElementById('health-bar').style.background = p.health < (maxHealth * 0.3) ? 'red' : 'lime';
+                document.getElementById('kers-bar').style.width = p.kers + '%';
+                document.getElementById('damage-warning').style.display = p.health < (maxHealth * 0.3) ? 'inline' : 'none';
+                this.cars.forEach(c => {
+                    const pix = this.hitCtx.getImageData(Math.floor(c.x), Math.floor(c.y), 1, 1).data;
+                    let surf = 'grass';
+                    if (pix[2] > 200) surf = 'barrier';
+                    else if (pix[0] === 0 && pix[1] === 0 && pix[2] === 0) surf = 'road';
+                    c.update(this.input, this.track, this.cars, surf, this.hitCtx);
+                });
+                this.particles.forEach((pt, i) => {
+                    pt.update();
+                    if (pt.life <= 0) this.particles.splice(i, 1);
+                });
+            },
+            draw() {
+                const ctx = this.ctx;
+                const p = this.cars[0];
+                ctx.fillStyle = '#111';
+                ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                ctx.save();
+                let camX = -p.x + this.canvas.width / 2;
+                let camY = -p.y + this.canvas.height / 2;
+                camX = Utils.clamp(camX, -CONFIG.WORLD_W + this.canvas.width, 0);
+                camY = Utils.clamp(camY, -CONFIG.WORLD_H + this.canvas.height, 0);
+                camX += (Math.random() - 0.5) * this.shake;
+                camY += (Math.random() - 0.5) * this.shake;
+                ctx.translate(camX, camY);
+                this.track.draw(ctx, false);
+                this.particles.forEach(pt => pt.draw(ctx));
+                this.cars.forEach(c => c.draw(ctx));
+                ctx.restore();
+            }
+        };
+        Game.init();
+    </script>
+</body>
+</html>
