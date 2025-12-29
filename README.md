@@ -1,7 +1,6 @@
 # 🏎️ Apex Formula: 80kmh Cap Edition
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Language](https://img.shields.io/badge/language-Html-yellow.svg)
 ![Status](https://img.shields.io/badge/status-Playable-green.svg)
 
 **Apex Formula** is a high-speed, top-down arcade racing game built entirely in vanilla JavaScript using the HTML5 Canvas API. Race against AI, manage your vehicle integrity, and utilize your KERS battery to secure victory.
